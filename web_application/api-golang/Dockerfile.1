@@ -18,6 +18,7 @@ RUN useradd -u 1001 gin
 COPY . . 
 
 # Health check (Hệ thống lớn và sử dụng K8s)
+# CGO_ENABLED=0 giúp binary chạy được trên cả Alpine lẫn Scratch mà không lo thiếu thư viện C
 RUN CGO_ENABLE=0 GOOS=linux GOARCH=amd64 \ 
     go build -o healthcheck ./healthcheck/healthcheck.go
 

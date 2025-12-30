@@ -1,0 +1,56 @@
+# Ghim version và sử dụng  Alpine để tối ưu image
+FROM golang:1.19-alpine AS builder
+
+WORKDIR /app
+
+# Copy các phụ thuộc để sau này đéo phải tải lại khi đéo thay đổi các file này
+COPY go.mod go.sum ./
+
+# Sử dụng tính năng gắn kết bộ nhớ cache để tăng tốc quá trình cài đặt các phụ thuộc
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && go mod verify
+
+# Giờ mới copy hết code để build này
+COPY . .
+
+# Biên dịch healthcheck
+RUN go build -o healthcheck ./healthcheck/healthcheck.go
+
+# Biên dịch chương trình
+RUN go build -o api-golang .
+
+# Dùng alpine phiên bản mới nhất để chạy
+FROM alpine:latest
+
+ENV GIN_MODE=release
+
+# Cài các application phụ thuộc. Apk như apt ở Ubuntu
+RUN apk add --no-cache ca-certificates tzdata
+
+# Thêm group và user vào group để bảo mật
+RUN addgroup -S -g 1001 go && adduser -S -D -u 1001 -G go gin
+
+WORKDIR /app
+
+# Copy app binary, set ownership
+COPY --from=builder --chown=gin:go /app/api-golang .
+
+# Copy healthcheck binary, set ownership
+COPY --from=builder --chown=gin:go /app/healthcheck .
+
+# Cấu hình Healthcheck sử dụng chính cái binary vừa build
+# interval: kiểm tra mỗi 30s
+# timeout: quá 3s coi như fail
+# start-period: đợi 5s cho app khởi động xong mới bắt đầu check
+# retries: thử lại 3 lần nếu fail thì mới báo unhealthy
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["./healthcheck"]
+
+USER gin 
+
+EXPOSE 8080
+
+CMD ["./api-golang"]
+
+
