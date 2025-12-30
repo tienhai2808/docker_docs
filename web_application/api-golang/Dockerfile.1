@@ -1,0 +1,50 @@
+# Ghim version và sử dụng Debian để có các tiện ích biên dịch dễ dàng hơn
+FROM golang:1.19-bullseye AS build
+
+WORKDIR /app
+
+# Copy các phụ thuộc để sau này đéo phải tải lại khi đéo thay đổi các file này
+COPY go.mod go.sum ./
+
+# Sử dụng tính năng gắn kết bộ nhớ cache để tăng tốc quá trình cài đặt các phụ thuộc
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && go mod verify
+
+# Thêm user mà lệnh useradd này dùng trong Debian/Ubuntu thôi. User thô. Alpine ưu tiên adduser
+RUN useradd -u 1001 gin
+
+# Giờ mới copy hết code để build này
+COPY . . 
+
+# Health check (Hệ thống lớn và sử dụng K8s)
+RUN CGO_ENABLE=0 GOOS=linux GOARCH=amd64 \ 
+    go build -o healthcheck ./healthcheck/healthcheck.go
+
+# Biên dịch chương trình
+RUN CGO_ENABLE=0 GOOS=linux GOARCH=amd64 \ 
+    go build -o api-golang .
+
+# Máy ảo 100% rỗng, để chạy binary biên ra thôi (Bảo mật tốt nhất, nhẹ nhất)
+FROM scratch 
+
+ENV GIN_MODE=release
+
+WORKDIR /
+
+# Copy password file 
+COPY --from=build /etc/passwd /etc/passwd
+
+# Copy healthcheck binary từ quá trình build ở trên
+COPY --from=build /app/healthcheck/healthcheck healthcheck
+
+# Copy app binary từ quá trình build ở trên
+COPY --from=build /app/api-golang api-golang
+
+# Phần này trở xuống chỉ gin mới chạy được
+USER gin
+
+# Chỉ định port dự kiện, có thể có nhiều
+EXPOSE 8080
+
+CMD ["./api-golang"]

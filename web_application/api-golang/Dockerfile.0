@@ -1,0 +1,19 @@
+# Ghim version và sử dụng Debian để có các tiện ích biên dịch dễ dàng hơn
+FROM golang:1.19-bullseye
+
+WORKDIR /app
+
+# Copy các phụ thuộc để sau này đéo phải tải lại khi đéo thay đổi các file này
+COPY go.mod go.sum ./ 
+
+# Cài đặt các phụ thuộc cần thiết
+RUN go mod download && go mod verify
+
+# Giờ mới copy hết code để build này
+COPY . .
+
+# Biên dịch ra file binary trong build luôn thay vì trong run để có 
+RUN go build -o api-golang .
+
+CMD ["./api-golang"]
+
