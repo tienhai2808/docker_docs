@@ -1,5 +1,5 @@
 # Ghim version và sử dụng Debian để có các tiện ích biên dịch dễ dàng hơn
-FROM golang:1.19-bullseye AS build
+FROM golang:1.19-bullseye AS builder
 
 WORKDIR /app
 
@@ -34,13 +34,19 @@ ENV GIN_MODE=release
 WORKDIR /
 
 # Copy password file 
-COPY --from=build /etc/passwd /etc/passwd
+COPY --from=builder /etc/passwd /etc/passwd
+
+# Copy chứng chỉ CA từ builder
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy timezone từ builder
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Copy healthcheck binary từ quá trình build ở trên
-COPY --from=build /app/healthcheck/healthcheck healthcheck
+COPY --from=builder /app/healthcheck/healthcheck healthcheck
 
 # Copy app binary từ quá trình build ở trên
-COPY --from=build /app/api-golang api-golang
+COPY --from=builder /app/api-golang api-golang
 
 # Phần này trở xuống chỉ gin mới chạy được
 USER gin

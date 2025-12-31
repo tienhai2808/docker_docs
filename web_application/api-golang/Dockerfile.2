@@ -3,6 +3,9 @@ FROM golang:1.19-alpine AS builder
 
 WORKDIR /app
 
+# Cài timezone thôi chứ CA thì có sẵn trong Alpine rồi
+RUN apk add --no-cache tzdata
+
 # Copy các phụ thuộc để sau này đéo phải tải lại khi đéo thay đổi các file này
 COPY go.mod go.sum ./
 
@@ -15,18 +18,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 
 # Biên dịch healthcheck
-RUN go build -o healthcheck ./healthcheck/healthcheck.go
+RUN CGO_ENABLE=0 GOOS=linux GOARCH=amd64 \ 
+    go build -o healthcheck ./healthcheck/healthcheck.go
 
 # Biên dịch chương trình
-RUN go build -o api-golang .
+RUN CGO_ENABLE=0 GOOS=linux GOARCH=amd64 \ 
+    go build -o api-golang .
 
 # Dùng alpine phiên bản mới nhất để chạy
 FROM alpine:latest
 
-ENV GIN_MODE=release
-
-# Cài các application phụ thuộc. Apk như apt ở Ubuntu
-RUN apk add --no-cache ca-certificates tzdata
+# Cài timezone thôi là được
+RUN apk add --no-cache tzdata
 
 # Thêm group và user vào group để bảo mật
 RUN addgroup -S -g 1001 go && adduser -S -D -u 1001 -G go gin
@@ -48,6 +51,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["./healthcheck"]
 
 USER gin 
+
+ENV GIN_MODE=release
 
 EXPOSE 8080
 

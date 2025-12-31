@@ -1,0 +1,60 @@
+ARG GO_VERSION=1.19
+ARG ALPINE_VERSION=3.19
+
+# Ghim version và sử dụng Debian để có các tiện ích biên dịch dễ dàng hơn
+FROM golang:${GO_VERSION}-bullseye AS builder
+
+WORKDIR /app
+
+# Copy các phụ thuộc để sau này đéo phải tải lại khi đéo thay đổi các file này
+COPY go.mod go.sum ./
+
+# Sử dụng tính năng gắn kết bộ nhớ cache để tăng tốc quá trình cài đặt các phụ thuộc
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && go mod verify
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+ARG BUILD_DATE
+
+COPY . .
+
+# "-w -s" -> strip debug symbol giúp giảm size, phần sau inject biến vào code
+# -trimpath: bỏ path máy build
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -trimpath \
+    -o healthcheck ./healthcheck/healthcheck.go
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s -X main.Version=${VERSION} -X main.CommitSHA=${COMMIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
+    -trimpath \
+    -o api-golang .
+
+# Distroless (tối thiểu hóa ảnh, 1 cách khác thay vì scratch)
+FROM gcr.io/distroless/static-debian12:nonroot
+
+WORKDIR /app 
+
+# Copy app binary, set ownership
+COPY --from=builder --chown=nonroot:nonroot /app/api-golang .
+
+# Copy healthcheck binary, set ownership
+COPY --from=builder --chown=nonroot:nonroot /app/healthcheck .
+
+# Cấu hình Healthcheck sử dụng chính cái binary vừa build
+# interval: kiểm tra mỗi 30s
+# timeout: quá 3s coi như fail
+# start-period: đợi 5s cho app khởi động xong mới bắt đầu check
+# retries: thử lại 3 lần nếu fail thì mới báo unhealthy
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["./healthcheck"]
+
+USER nonroot
+
+ENV GIN_MODE=release
+
+EXPOSE 8080
+
+CMD ["./api-golang"]

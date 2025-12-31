@@ -4,8 +4,10 @@
 - **:ro**: Readonly, mặc định là writeonly
 - **--rmi**: Xóa image chỉ định
 - **-v**: Xóa volumes của container
-- **-f**: Chỉ định Dockerfile hoặc docker-compose.yml cụ thể
-- **--env-file** Chỉ định file .env cụ thể
+- **-f**: Chỉ định file cụ thể để chạy
+- **--env-file**: Chỉ định file .env cụ thể
+- **--build-arg**: Truyền tham số khi chạy Dockerfile
+- **--target**: Chỉ định stage muốn build
 
 
 

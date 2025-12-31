@@ -1,0 +1,2 @@
+- Size của image chỉ ăn theo stage cuối cùng
+- Nhiều stage thì dùng thẻ --target
