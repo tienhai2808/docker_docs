@@ -42,7 +42,7 @@ ENTRYPOINT ["node"]
 
 CMD ["./src/index.js"]
 
-FROM gcr.io/distroless/nodejs18-debian12:nonroot AS distroless-runtime
+FROM gcr.io/distroless/nodejs18-debian11:nonroot AS distroless-runtime
 
 WORKDIR /app 
 
