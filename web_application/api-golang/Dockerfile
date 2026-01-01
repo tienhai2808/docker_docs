@@ -20,7 +20,7 @@ COPY . .
 
 CMD ["air", "-c", ".air.toml"]
 
-FROM base AS builder
+FROM base AS build
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
@@ -48,9 +48,9 @@ RUN addgroup -S -g 1001 go && adduser -S -D -u 1001 -G go gin
 
 WORKDIR /app
 
-COPY --from=builder --chown=gin:go /app/api-golang .
+COPY --from=build --chown=gin:go /app/api-golang .
 
-COPY --from=builder --chown=gin:go /app/healthcheck .
+COPY --from=build --chown=gin:go /app/healthcheck .
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["./healthcheck"]
@@ -67,15 +67,15 @@ FROM scratch AS scratch-runtime
 
 WORKDIR / 
 
-COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=build /etc/passwd /etc/passwd
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 
-COPY --from=builder --chown=gin:gin /app/healthcheck/healthcheck healthcheck
+COPY --from=build --chown=gin:gin /app/healthcheck/healthcheck healthcheck
 
-COPY --from=builder --chown=gin:gin /app/api-golang api-golang
+COPY --from=build --chown=gin:gin /app/api-golang api-golang
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["./healthcheck"]
@@ -92,9 +92,9 @@ FROM gcr.io/distroless/static-debian12:nonroot AS distroless-runtime
 
 WORKDIR /app 
 
-COPY --from=builder --chown=nonroot:nonroot /app/api-golang .
+COPY --from=build --chown=nonroot:nonroot /app/api-golang .
 
-COPY --from=builder --chown=nonroot:nonroot /app/healthcheck .
+COPY --from=build --chown=nonroot:nonroot /app/healthcheck .
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["./healthcheck"]

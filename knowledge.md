@@ -1,2 +1,6 @@
 - Size của image chỉ ăn theo stage cuối cùng
 - Nhiều stage thì dùng thẻ --target
+- Bullseye phù hợp cho dev/debug (Bản Debian đầy đủ)
+- Bullseye-slim phù hợp cho build (Bản Debian cắt bỏ bớt 40~50%)
+- Distroless/alpine/scratch phù hợp cho production, nhẹ hơn, distroless và scratch thì bảo mật hơn
+- Golang thì đéo có bullseye-slim nên đéo tối ưu hơn được nữa, thích thì dùng alpine để build

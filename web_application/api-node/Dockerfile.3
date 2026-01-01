@@ -1,0 +1,34 @@
+ARG NODE_VERSION=19.6
+
+FROM node:${NODE_VERSION}-bullseye-slim AS builder
+
+WORKDIR /app 
+
+COPY package-lock.json* package.json ./
+
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+    npm set cache /usr/src/app/.npm && npm ci
+
+COPY ./healthcheck ./healthcheck 
+
+COPY ./src ./src
+
+FROM gcr.io/distroless/nodejs18-debian12:nonroot AS distroless
+
+WORKDIR /app 
+
+COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
+
+COPY --from=builder --chown=nonroot:nonroot /app/healthcheck ./healthcheck
+
+COPY --from=builder --chown=nonroot:nonroot /app/src ./src
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["/nodejs/bin/node", "healthcheck/healthcheck.js"]
+
+USER nonroot
+
+EXPOSE 5000
+
+#Distroless không có shell nên dùng CMD trực tiếp
+CMD ["/nodejs/bin/node", "src/index.js"]

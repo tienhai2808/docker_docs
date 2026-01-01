@@ -1,0 +1,27 @@
+# Ghim version và sử dụng Alpine để tối ưu hơn
+FROM node:19.6-alpine AS builder
+
+WORKDIR /app
+
+# Copy các phụ thuộc
+COPY package-lock.json* package.json ./
+
+# Cài đặt các phụ thuộc và cache để build lại nhanh hơn
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+    npm set cache /usr/src/app/.npm && npm ci 
+
+# Node có sẵn group/user node gid/uid 1000 rồi
+COPY --chown=node:node ./healthcheck . 
+
+COPY --chown=node:node ./src .
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["node", "healthcheck.js"]
+
+USER node 
+
+EXPOSE 5000
+
+ENTRYPOINT ["node"]
+
+CMD ["index.js"]
