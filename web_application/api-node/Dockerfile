@@ -8,8 +8,8 @@ COPY package*.json ./
 
 FROM base AS dev 
 
-RUN --mount=type=cache,target=/usr/src/app/.npm \
-    npm set cache /usr/src/app/.npm && npm install
+RUN --mount=type=cache,target=/app/.npm \
+    npm set cache /app/.npm && npm install
 
 COPY . .
 
@@ -19,15 +19,15 @@ CMD ["run", "dev"]
 
 FROM base AS build
 
-RUN --mount=type=cache,target=/usr/src/app/.npm \
-    npm set cache /usr/src/app/.npm && \
+RUN --mount=type=cache,target=/app/.npm \
+    npm set cache /app/.npm && \
     npm ci --only=production
 
 COPY --chown=node:node ./healthcheck ./healthcheck
 
 COPY --chown=node:node ./src ./src 
 
-FROM base AS production
+FROM build AS production
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["node", "./healthcheck/healthcheck.js"]

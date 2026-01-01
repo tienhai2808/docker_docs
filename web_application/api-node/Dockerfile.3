@@ -6,8 +6,8 @@ WORKDIR /app
 
 COPY package-lock.json* package.json ./
 
-RUN --mount=type=cache,target=/usr/src/app/.npm \
-    npm set cache /usr/src/app/.npm && npm ci
+RUN --mount=type=cache,target=/app/.npm \
+    npm set cache /app/.npm && npm ci
 
 COPY ./healthcheck ./healthcheck 
 
