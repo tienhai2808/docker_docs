@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:15.1-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=hahaha
+    networks:
+      - backend
+    ports:
+      - 5432:5432
+  client-react-vite:
+    image: client-react-vite
+    build:
+      context: ../web_application/client-react/
+      dockerfile: ../../web_application/client-react/Dockerfile.0
+    init: true
+    volumes:
+      - ./client-react/vite.config.js:/app/vite.config.js
+    networks:
+      - frontend
+    ports:
+      - 5173:5173
+  client-react-nginx:
+    labels:
+      shipyard.primary-route: true
+      shipyard.route: '/'
+    image: client-react-nginx
+    build:
+      context: ../web_application/client-react/
+      dockerfile: ../../web_application/client-react/Dockerfile
+    init: true
+    networks:
+      - frontend
+    ports:
+      - 80:8080
+    restart: unless-stopped
+  api-node:
+    labels:
+      shipyard.route: '/api/node/'
+      shipyard.route.rewrite: true
+    image: api-node
+    build:
+      context: ../web_application/api-node/
+      dockerfile: ../../web_application/api-node/Dockerfile
+    init: true
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:hahaha@db:5432/postgres
+    networks:
+      - frontend
+      - backend
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+  api-golang:
+    labels:
+      shipyard.route: '/api/golang/'
+      shipyard.route.rewrite: true
+    image: api-golang
+    build:
+      context: ../web_application/api-golang/
+      dockerfile: ../../web_application/api-golang/Dockerfile
+    init: true
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:hahaha@db:5432/postgres
+    networks:
+      - frontend
+      - backend
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+volumes:
+  pgdata:
+networks:
+  frontend:
+  backend:

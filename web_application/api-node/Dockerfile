@@ -36,7 +36,7 @@ USER node
 
 ENV NODE_ENV=production
 
-EXPOSE 5000
+EXPOSE 3000
 
 ENTRYPOINT ["node"]
 
@@ -53,15 +53,15 @@ COPY --from=build --chown=nonroot:nonroot /app/healthcheck ./healthcheck
 COPY --from=build --chown=nonroot:nonroot /app/src ./src
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["/nodejs/bin/node", "healthcheck/healthcheck.js"]
+  CMD ["./healthcheck/healthcheck.js"]
 
 USER nonroot
 
 ENV NODE_ENV=production
 
-EXPOSE 5000
+EXPOSE 3000
 
-CMD ["/nodejs/bin/node", "src/index.js"]
+CMD ["./src/index.js"]
 
 
 
