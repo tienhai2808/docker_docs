@@ -8,5 +8,4 @@
 - **--env-file**: Chỉ định file .env cụ thể
 - **--build-arg**: Truyền tham số khi chạy Dockerfile
 - **--target**: Chỉ định stage muốn build
-
-
+- **docker scout cves**: Check lỗi của image

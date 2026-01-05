@@ -1,0 +1,90 @@
+services:
+  db:
+    image: postgres:15.1-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=hahaha
+    networks:
+      - backend
+    ports:
+      - 5432:5432
+  client-react-vite:
+    image: client-react-vite
+    build:
+      context: ../web_application/client-react/
+      dockerfile: ../../web_application/client-react/Dockerfile.0
+    init: true
+    volumes:
+      - type: bind
+        source: ../web_application/client-react/
+        target: /app/
+      - type: volume
+        target: /app/node_modules
+      - type: bind
+        source: ../running_containers/client-react/vite.config.js
+        target: /app/vite.config.js
+    networks:
+      - frontend
+    ports:
+      - 5173:5173
+  client-react-nginx:
+    image: client-react-nginx
+    build:
+      context: ../web_application/client-react/
+      dockerfile: ../../web_application/client-react/Dockerfile
+    init: true
+    networks:
+      - frontend
+    ports:
+      - 80:8080
+    restart: unless-stopped
+  api-node:
+    image: api-node
+    build:
+      context: ../web_application/api-node/
+      dockerfile: ../../web_application/api-node/Dockerfile
+      target: dev
+    init: true
+    volumes:
+      - type: bind
+        source: ../web_application/api-node/
+        target: /app/
+      - type: volume
+        target: /app/node_modules
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:hahaha@db:5432/postgres
+    networks:
+      - frontend
+      - backend
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+  api-golang:
+    image: api-golang
+    build:
+      context: ../web_application/api-golang/
+      dockerfile: ../../web_application/api-golang/Dockerfile
+      target: dev
+    init: true
+    volumes:
+      - type: bind
+        source: ../web_application/api-golang/
+        target: /app/
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:hahaha@db:5432/postgres
+    networks:
+      - frontend
+      - backend
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+volumes:
+  pgdata:
+networks:
+  frontend:
+  backend:

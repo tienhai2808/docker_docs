@@ -13,8 +13,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM base AS dev
 
-RUN go install github.com/cosmtrek/air@latest && \
-    go install github.com/go-delve/delve/cmd/dlv@latest
+RUN go install github.com/cosmtrek/air@v1.49.0 && \
+    go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
 COPY . .
 
