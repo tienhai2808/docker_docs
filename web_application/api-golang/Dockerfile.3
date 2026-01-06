@@ -22,7 +22,9 @@ COPY . .
 
 # "-w -s" -> strip debug symbol giúp giảm size, phần sau inject biến vào code
 # -trimpath: bỏ path máy build
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -trimpath \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s" \
+    -trimpath \
     -o healthcheck ./healthcheck/healthcheck.go
 
 RUN --mount=type=cache,target=/go/pkg/mod \

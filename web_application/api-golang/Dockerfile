@@ -30,7 +30,9 @@ RUN useradd -u 1001 gin
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -trimpath \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s" \
+    -trimpath \
     -o healthcheck ./healthcheck/healthcheck.go
 
 RUN --mount=type=cache,target=/go/pkg/mod \
